@@ -3,6 +3,7 @@ import random
 import time
 
 
+# random number with 6 characters
 def create_otp():
     digits = "0123456789"
     OTP = ""
