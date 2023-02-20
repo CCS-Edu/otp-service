@@ -71,9 +71,10 @@ def index():
     # print(otp)
     session["response"] = str(
         otp
-    )  # su dung session de nho bien response qua cac request khac nhau
-
-    return jsonify({"Your otp is": otp})
+    )  # su dung session de luu bien response qua cac request khac nhau
+    response = jsonify({"Your otp is": otp})
+    response.status_code = 201
+    return response
 
 
 @app.route("/verifyotp", methods=["POST"])
@@ -89,12 +90,16 @@ def verifyotp():
             for user in users:
                 if user["username"] == username and user["password"] == password:
                     token = generate_token(username)
-                    return jsonify({"token": token})
-            return "Your username or password is incorrect"
+                    response = jsonify({"token": token})
+                    response.status_code = 201
+                    return response
+                return jsonify("Your username or password is incorrect")
         else:
-            return jsonify("You are not authorized, Sorry")
+            response = jsonify("You are not authorized, Sorry")
+            response.status_code = 401
+            return response
 
-    return jsonify("hello")
+    return jsonify("Please enter all otp and username and password")
 
 
 if __name__ == "__main__":
