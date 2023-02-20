@@ -15,14 +15,14 @@ def client():
 def test_index_page(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"Enter your OTP" in response.data
+    assert b"Your otp is" in response.data
 
 
 def test_invalid_otp_submission(client):
     with client.session_transaction() as session:
         session["response"] = "1234"  # Set the session response to an expected value
-
-    response = client.post("/validateotp", data={"otp": "4321"})
+    data = {"otp": "4321", "username": "user1", "password": "pass1"}
+    response = client.post("/verifyotp", json=data)
     assert response.status_code == 200
     assert b"You are not authorized, Sorry" in response.data
 
@@ -30,21 +30,29 @@ def test_invalid_otp_submission(client):
 def test_valid_otp_submission(client):
     with client.session_transaction() as session:
         session["response"] = "1234"  # Set the session response to an expected value
-
-    response = client.post("/validateotp", data={"otp": "1234"})
+    data = {"otp": "1234", "username": "user1", "password": "pass1"}
+    response = client.post("/verifyotp", json=data)
     assert response.status_code == 200
     assert b"" in response.data
 
 
 def test_valid_login(client):
-    response = client.post("/login", data={"username": "user1", "password": "pass1"})
+    # response = client.post("/login", data={"username": "user1", "password": "pass1"})
+    with client.session_transaction() as session:
+        session["response"] = "1234"  # Set the session response to an expected value
+    data = {"otp": "1234", "username": "user1", "password": "pass1"}
+    response = client.post("/verifyotp", json=data)
     assert response.status_code == 200
     assert b"token" in response.data
 
 
 def test_invalid_login(client):
-    response = client.post(
-        "/login", data={"username": "user1", "password": "pass2"}
-    )
+    # response = client.post(
+    #     "/login", data={"username": "user1", "password": "pass2"}
+    # )
+    with client.session_transaction() as session:
+        session["response"] = "1234"  # Set the session response to an expected value
+    data = {"otp": "1234", "username": "user1", "password": "pass2"}
+    response = client.post("/verifyotp", json=data)
     assert response.status_code == 200
     assert b"Your username or password is incorrect" in response.data

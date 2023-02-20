@@ -1,5 +1,6 @@
-from flask import render_template, Flask, request, session, redirect, jsonify
+from flask import Flask, request, session, jsonify
 import random
+
 # from twilio.rest import Client
 import jwt
 import datetime
@@ -63,43 +64,37 @@ class otp_verifier:
 otp_generator = OTPGenerator(4)
 
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def index():
     otp = otp_generator.generate_otp()
-    print(type(otp))
-    print(otp)
+    # print(type(otp))
+    # print(otp)
     session["response"] = str(
         otp
     )  # su dung session de nho bien response qua cac request khac nhau
-    return render_template("enterOTP.html")
+
+    return jsonify({"Your otp is": otp})
 
 
-@app.route("/validateotp", methods=["POST"])
-def validateOTP():
-    otp = request.form["otp"]
-    if "response" in session:
+@app.route("/verifyotp", methods=["POST"])
+def verifyotp():
+    otp_usn_pwd = request.get_json()
+    _otp = otp_usn_pwd["otp"]
+    if otp_usn_pwd and request.method == "POST":
         s = session["response"]
-        session.pop("response", None)  # xoa response khoi session
-        if s == otp:
-            return render_template("index.html")
+        # session.pop("response", None)  # xoa response khoi session
+        if s == _otp:
+            username = otp_usn_pwd["username"]
+            password = otp_usn_pwd["password"]
+            for user in users:
+                if user["username"] == username and user["password"] == password:
+                    token = generate_token(username)
+                    return jsonify({"token": token})
+            return "Your username or password is incorrect"
         else:
-            return "You are not authorized, Sorry"
+            return jsonify("You are not authorized, Sorry")
 
-    return redirect("/")
-
-
-@app.route("/login", methods=["POST"])
-def login():
-    username = request.form["username"]
-    password = request.form["password"]
-
-    for user in users:
-        if user["username"] == username and user["password"] == password:
-            # session["username"] = username
-            token = generate_token(username)
-            return jsonify({"token": token})
-
-    return "Your username or password is incorrect"
+    return jsonify("hello")
 
 
 if __name__ == "__main__":
