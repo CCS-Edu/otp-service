@@ -1,0 +1,106 @@
+from flask import render_template, Flask, request, session, redirect, jsonify
+import random
+# from twilio.rest import Client
+import jwt
+import datetime
+
+app = Flask(__name__)
+app.secret_key = "helloworld"
+
+# khoi tao username va password ban dau
+users = [
+    {"username": "user1", "password": "pass1"},
+    {"username": "user2", "password": "pass2"},
+    {"username": "user3", "password": "pass3"},
+]
+
+
+# ham tao token tu username va phut, gio, ngay, thang, hien tai
+def generate_token(username):
+    now = datetime.datetime.now()
+    time = (
+        str(now.hour)
+        + "h"
+        + str(now.minute)
+        + "m,"
+        + str(now.day)
+        + "/"
+        + str(now.month)
+        + "/"
+        + str(now.year)
+    )
+    payload = {"username": username, "time": time}
+    secret = app.secret_key
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    return token
+
+
+# otpgenerator class
+class OTPGenerator:
+    def __init__(self, length=6):
+        self.length = length
+
+    def generate_otp(self):
+        # Generate a random string of digits of specified length
+        digits = [str(random.randint(0, 9)) for i in range(self.length)]
+        otp = "".join(digits)
+        return otp
+
+
+"""
+class otp_verifier:
+    def __init__(self):
+        otp = generate_otp()
+        self.n = otp
+        self.client = Client(
+            "AC0998d21a1fff603fa3013bc3f7f55dba", "b030bb32576df29484b80130a66e685f"
+        )
+        self.client.messages.create(
+            to=["+84384095791"], from_="+19206955933", body=self.n
+        )
+        session["response"] = str(otp)
+"""
+otp_generator = OTPGenerator(4)
+
+
+@app.route("/")
+def index():
+    otp = otp_generator.generate_otp()
+    print(type(otp))
+    print(otp)
+    session["response"] = str(
+        otp
+    )  # su dung session de nho bien response qua cac request khac nhau
+    return render_template("enterOTP.html")
+
+
+@app.route("/validateotp", methods=["POST"])
+def validateOTP():
+    otp = request.form["otp"]
+    if "response" in session:
+        s = session["response"]
+        session.pop("response", None)  # xoa response khoi session
+        if s == otp:
+            return render_template("index.html")
+        else:
+            return "You are not authorized, Sorry"
+
+    return redirect("/")
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.form["username"]
+    password = request.form["password"]
+
+    for user in users:
+        if user["username"] == username and user["password"] == password:
+            # session["username"] = username
+            token = generate_token(username)
+            return jsonify({"token": token})
+
+    return "Your username or password is incorrect"
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
